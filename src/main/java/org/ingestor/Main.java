@@ -14,7 +14,7 @@ public class Main {
 
     public static void main(String[] args) {
 
-        DocGenerator docGenerator = new DoctoLibDocGenerator();
+        DocGenerator docGenerator = new DLDocGenerator();
 
         /* parameters to use if no command line is found */
         String username = "Administrator";
