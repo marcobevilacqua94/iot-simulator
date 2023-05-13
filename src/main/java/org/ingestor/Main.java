@@ -2,18 +2,29 @@ package org.ingestor;
 
 import com.couchbase.client.core.retry.BestEffortRetryStrategy;
 import com.couchbase.client.java.*;
-import com.couchbase.client.java.json.JsonObject;
 import org.apache.commons.cli.*;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
-import java.util.TimeZone;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Main {
+
     public static void main(String[] args) {
+
+        DocGenerator docGenerator = new DoctoLibDocGenerator();
+
+        /* parameters to use if no command line is found */
+        String username = "Administrator";
+        String password = "password";
+        String ip = "127.0.0.1";
+        String bucketName = "sample";
+        String scopeName = "_default";
+        String collectionName = "_default";
+        int buffer = 10000;
+        int docs = 10_000_000;
 
 
         CommandLine commandLine;
@@ -38,20 +49,10 @@ public class Main {
         options.addOption(option_s);
         options.addOption(option_f);
 
-
         String header = "               [<arg1> [<arg2> [<arg3> ...\n       Options, flags and arguments may be in any order";
         HelpFormatter formatter = new HelpFormatter();
         formatter.printHelp("CLIsample", header, options, null, true);
 
-        String username = "Administrator";
-        String password = "password";
-        String ip = "127.0.0.1";
-        String bucketName = "sample";
-        String scopeName = "_default";
-        String collectionName = "_default";
-        int buffer = 10000;
-
-        int docs = 10_000_000;
 
         try
         {
@@ -107,7 +108,6 @@ public class Main {
             System.out.println(exception.getMessage());
         }
 
-        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
         try(
                 Cluster cluster = Cluster.connect(
                         ip,
@@ -128,20 +128,14 @@ public class Main {
                     .map(counterList ->
                             Flux.fromIterable(counterList).flatMap(counter ->
                                     collection.upsert(UUID.randomUUID().toString(),
-                                            JsonObject.create()
-                                                    .put("counter", counter)
-                                                    .put("bomber", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
-                            ).count().single().block()
+                                            docGenerator.generateDoc(counter))).count().single().block()
                     )
                     .count()
                     .single()
                     .block();
         }
-
-
-
-
-
     }
+
+
 
 }
