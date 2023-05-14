@@ -21,7 +21,7 @@ public class DLDocGenerator implements DocGenerator {
                 .put("_id", generateOid())
                 .put("id", counter)
                 .put("item_type", "Appointment")
-                .put("item_id", Integer.parseInt(generateNatId()))
+                .put("item_id", Long.parseLong(generateNatId()))
                 .put("event",returnRandom(events))
                 .put("whodounnit", generateNatId())
                 .put("created_at", generateDate())
