@@ -6,4 +6,4 @@ spec:
   containers:
     - name: ingestor
       image: marcobevilacqua94/ingestor:latest
-      command: ["java","-jar","app.jar","-h","cb-example-persistent"]
+      command: ["java","-jar","ingestor.jar","-h","cb-example-persistent"]
