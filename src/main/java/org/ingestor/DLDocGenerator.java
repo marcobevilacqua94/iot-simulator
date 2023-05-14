@@ -23,7 +23,7 @@ public class DLDocGenerator implements DocGenerator {
                 .put("item_type", "Appointment")
                 .put("item_id", Long.parseLong(generateNatId()))
                 .put("event",returnRandom(events))
-                .put("whodounnit", generateNatId())
+                .put("whodounnit", Long.parseLong(generateNatId()))
                 .put("created_at", generateDate())
                 .put("object", loremSentence)
                 .put("object_changes", generateObjectChanges())
@@ -89,11 +89,11 @@ public class DLDocGenerator implements DocGenerator {
             default:
                 day = rand.nextInt(30) + 1;
         }
-        return year + "-" + month + "-" + day;
+        return year + "-" + (month < 10 ? ("0" + month) : month) + "-" + (day < 10 ? ("0" + day) : day);
     }
 
-    private String generateApiId(){
-        return rand.nextInt(100) == 99 ? null : generateNatId();
+    private Long generateApiId(){
+        return rand.nextInt(100) == 99 ? null : Long.parseLong(generateNatId());
     }
 
     private String generateObjectChanges(){
