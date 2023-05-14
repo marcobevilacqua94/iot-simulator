@@ -18,29 +18,18 @@ public class DLDocGenerator implements DocGenerator {
 
     public JsonObject generateDoc(int counter){
         return JsonObject.create()
-                .put("_id", JsonObject.create()
-                        .put("$oid", generateOid())
-                )
-                .put("id", JsonObject.create()
-                        .put("$numberLong", Integer.toString(counter))
-                )
+                .put("_id", generateOid())
+                .put("id", counter)
                 .put("item_type", "Appointment")
-                .put("item_id", JsonObject.create()
-                        .put("$numberInt", generateNatId())
-                )
+                .put("item_id", Integer.parseInt(generateNatId()))
                 .put("event",returnRandom(events))
-                .put("whodounnit", JsonObject.create()
-                        .put("$numberInt", generateNatId())
-                )
-                .put("created_at", JsonObject.create()
-                        .put("$date", JsonObject.create()
-                                .put("$numberLong", generateDate())))
+                .put("whodounnit", generateNatId())
+                .put("created_at", generateDate())
                 .put("object", loremSentence)
                 .put("object_changes", generateObjectChanges())
                 .put("remote_ip", generateIPAddress())
                 .put("user_agent", generateUserAgent())
-                .put("api_consumer_id", JsonObject.create()
-                        .put("$numberInt", generateApiId()))
+                .put("api_consumer_id", generateApiId())
                 .put("external_sync_modification", loremSentence)
                 .put("generated_sync_out_message", returnRandomBool());
     }
@@ -74,7 +63,33 @@ public class DLDocGenerator implements DocGenerator {
     }
 
     private String generateDate(){
-        return RandomStringUtils.randomNumeric(13);
+        int year = 2013 + rand.nextInt(10);
+        int month = rand.nextInt(12) + 1;
+        int day;
+        switch(month){
+            case 1:
+            case 3:
+            case 5:
+            case 7:
+            case 8:
+            case 10:
+            case 12:
+                day = rand.nextInt(31) + 1;
+                break;
+            case 2:
+                switch(year){
+                    case 2016:
+                    case 2020:
+                        day = rand.nextInt(29) + 1;
+                        break;
+                    default:
+                        day = rand.nextInt(28) + 1;
+                }
+                break;
+            default:
+                day = rand.nextInt(30) + 1;
+        }
+        return year + "-" + month + "-" + day;
     }
 
     private String generateApiId(){
