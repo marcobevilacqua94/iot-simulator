@@ -106,7 +106,7 @@ public class Main {
                 System.out.printf("buffer: %s%n", commandLine.getOptionValue("f"));
                 buffer = Integer.parseInt(commandLine.getOptionValue("f"));
             }
-            if (commandLine.hasOption("u"))
+            if (commandLine.hasOption("uc"))
             {
                 System.out.print("use count: true");
                 useCount = true;
@@ -131,18 +131,14 @@ public class Main {
             ReactiveBucket bucket = cluster.bucket(bucketName).reactive();
             ReactiveScope scope = bucket.scope(scopeName);
             ReactiveCollection collection = scope.collection(collectionName);
-
-            String finalCollectionName = collectionName;
             boolean finalUseCount = useCount;
             long finalDocs = docs;
-            String finalBucketName = bucketName;
-            String finalScopeName = scopeName;
+            String query = "select COUNT(*) as count from `" + bucketName + "`.`" + scopeName + "`.`" + collectionName + "`";
             Flux.fromIterable(LongStream.rangeClosed(1, docs)
                             .boxed().collect(Collectors.toList()))
                     .buffer(buffer)
                     .map(counterList -> {
                                 if (finalUseCount) {
-                                    String query = "select COUNT(*) as count from " + finalBucketName + "." + finalScopeName + "." + finalCollectionName;
                                     QueryResult result = cluster.query(query);
                                     if(Long.parseLong(result.rowsAsObject().get(0).get("count").toString()) >= finalDocs) {
                                         System.exit(0);
