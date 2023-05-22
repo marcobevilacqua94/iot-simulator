@@ -21,8 +21,8 @@ public class Main {
         String bucketName = "sample";
         String scopeName = "_default";
         String collectionName = "_default";
-        int buffer = 1000;
-        Long docs = 1000000000L;
+        int buffer = 10000;
+        long docs = 0L;
         long contentLimit = 0L;
 
 
@@ -133,7 +133,7 @@ public class Main {
 
             Flux.generate(() -> 0, (i, sink) ->
                 { sink.next(i);
-                    if (i > finalDocs) {
+                    if (finalDocs != 0 && i > finalDocs) {
                         sink.complete();
                     } return i + 1; }).buffer(buffer)
                     .map(counterList -> {
