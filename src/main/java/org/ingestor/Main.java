@@ -21,7 +21,7 @@ public class Main {
         String bucketName = "sample";
         String scopeName = "_default";
         String collectionName = "_default";
-        int buffer = 10000;
+        int buffer = 1000;
         int docs = 1000000000;
         long contentLimit = 0L;
 

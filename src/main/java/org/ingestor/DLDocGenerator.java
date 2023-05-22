@@ -19,7 +19,7 @@ public class DLDocGenerator implements DocGenerator {
     public JsonObject generateDoc(long counter){
         return JsonObject.create()
                 .put("_id", generateOid())
-                .put("id", counter)
+                .put("id", Long.parseLong(generateNatId()))
                 .put("item_type", "Appointment")
                 .put("item_id", Long.parseLong(generateNatId()))
                 .put("event",returnRandom(events))
