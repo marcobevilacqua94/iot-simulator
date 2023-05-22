@@ -8,13 +8,13 @@ content-limit is an option to tell the script to check the content of the collec
 
 default values for parameters are
 
-host: localhost
+host: 127.0.0.1
 username: Administrator
 password: password
 bucker-name: sample
 scope-name: _default
 collection-name: _default
-buffer-size: 1000e
+buffer-size: 1000
 num-of-docs: 0 (infinite)
 content-limit: 0 (infinite)
 
