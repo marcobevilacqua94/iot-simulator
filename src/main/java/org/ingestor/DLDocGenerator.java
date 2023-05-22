@@ -16,7 +16,7 @@ public class DLDocGenerator implements DocGenerator {
 
     private final String loremSentence = "Lorem ipsum repellendus necessitatibus culpa blanditiis consequuntur dolor.";
 
-    public JsonObject generateDoc(long counter){
+    public JsonObject generateDoc(){
         return JsonObject.create()
                 .put("_id", generateOid())
                 .put("id", Long.parseLong(generateNatId()))

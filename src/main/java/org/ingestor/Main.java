@@ -22,7 +22,7 @@ public class Main {
         String scopeName = "_default";
         String collectionName = "_default";
         int buffer = 1000;
-        int docs = 1000000000;
+        Long docs = 1000000000L;
         long contentLimit = 0L;
 
 
@@ -80,7 +80,7 @@ public class Main {
             if (commandLine.hasOption("n"))
             {
                 System.out.printf("docs to save: %s%n", commandLine.getOptionValue("n"));
-                docs = Integer.parseInt(commandLine.getOptionValue("n"));
+                docs = Long.parseLong(commandLine.getOptionValue("n"));
             }
             if (commandLine.hasOption("b"))
             {
@@ -128,24 +128,31 @@ public class Main {
             ReactiveScope scope = bucket.scope(scopeName);
             ReactiveCollection collection = scope.collection(collectionName);
             long finalContentLimit = contentLimit;
+            long finalDocs = docs;
             String query = "select COUNT(*) as count from `" + bucketName + "`.`" + scopeName + "`.`" + collectionName + "`";
-            Flux.range(1, docs).buffer(buffer)
+
+            Flux.generate(() -> 0, (i, sink) ->
+                { sink.next(i);
+                    if (i > finalDocs) {
+                        sink.complete();
+                    } return i + 1; }).buffer(buffer)
                     .map(counterList -> {
                                 if (finalContentLimit > 0) {
                                     QueryResult result = cluster.query(query);
-                                    if(Long.parseLong(result.rowsAsObject().get(0).get("count").toString()) >= finalContentLimit) {
+                                    if (Long.parseLong(result.rowsAsObject().get(0).get("count").toString()) >= finalContentLimit) {
                                         System.exit(0);
                                     }
                                 }
                                 return Flux.fromIterable(counterList).flatMap(counter ->
                                         collection.upsert(UUID.randomUUID().toString(),
-                                                docGenerator.generateDoc(counter))).count().single().block();
+                                                docGenerator.generateDoc())).count().single().block();
                             }
                     )
                     .count()
                     .single()
                     .block();
         }
+
     }
 
 

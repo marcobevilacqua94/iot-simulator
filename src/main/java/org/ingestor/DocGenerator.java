@@ -4,5 +4,5 @@ import com.couchbase.client.java.json.JsonObject;
 
 public interface DocGenerator {
 
-    JsonObject generateDoc(long counter);
+    JsonObject generateDoc();
 }
