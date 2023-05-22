@@ -8,10 +8,6 @@ import reactor.core.publisher.Flux;
 
 import java.time.Duration;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.LongStream;
-
 public class Main {
 
     public static void main(String[] args) {
@@ -25,9 +21,9 @@ public class Main {
         String bucketName = "sample";
         String scopeName = "_default";
         String collectionName = "_default";
-        boolean useCount = false;
         int buffer = 10000;
-        long docs = 10000000;
+        int docs = 10000000;
+        long contentLimit = 0L;
 
 
         CommandLine commandLine;
@@ -39,7 +35,7 @@ public class Main {
         Option option_s = Option.builder("s").argName("scope").hasArg().desc("couchbase scope").build();
         Option option_c = Option.builder("c").argName("collection").hasArg().desc("couchbase collection").build();
         Option option_docs = Option.builder("n").argName("num-of-docs").hasArg().desc("docs to create").build();
-        Option option_use_count = Option.builder("uc").argName("use-count").desc("count doc present in collection to know when to stop").build();
+        Option option_content_limit = Option.builder("cl").argName("content-limit").hasArg().desc("content limit number of the bucket").build();
 
         Options options = new Options();
         CommandLineParser parser = new DefaultParser();
@@ -52,7 +48,7 @@ public class Main {
         options.addOption(option_c);
         options.addOption(option_s);
         options.addOption(option_f);
-        options.addOption(option_use_count);
+        options.addOption(option_content_limit);
 
         String header = "               [<arg1> [<arg2> [<arg3> ...\n       Options, flags and arguments may be in any order";
         HelpFormatter formatter = new HelpFormatter();
@@ -84,7 +80,7 @@ public class Main {
             if (commandLine.hasOption("n"))
             {
                 System.out.printf("docs to save: %s%n", commandLine.getOptionValue("n"));
-                docs = Long.parseLong(commandLine.getOptionValue("n"));
+                docs = Integer.parseInt(commandLine.getOptionValue("n"));
             }
             if (commandLine.hasOption("b"))
             {
@@ -106,10 +102,10 @@ public class Main {
                 System.out.printf("buffer: %s%n", commandLine.getOptionValue("f"));
                 buffer = Integer.parseInt(commandLine.getOptionValue("f"));
             }
-            if (commandLine.hasOption("uc"))
+            if (commandLine.hasOption("cl"))
             {
-                System.out.print("use count: true");
-                useCount = true;
+                System.out.printf("content limit: %s%n", commandLine.getOptionValue("cl"));
+                contentLimit = Long.parseLong(commandLine.getOptionValue("cl"));
             }
         }
         catch (ParseException exception)
@@ -131,16 +127,13 @@ public class Main {
             ReactiveBucket bucket = cluster.bucket(bucketName).reactive();
             ReactiveScope scope = bucket.scope(scopeName);
             ReactiveCollection collection = scope.collection(collectionName);
-            boolean finalUseCount = useCount;
-            long finalDocs = docs;
+            long finalContentLimit = contentLimit;
             String query = "select COUNT(*) as count from `" + bucketName + "`.`" + scopeName + "`.`" + collectionName + "`";
-            Flux.fromIterable(LongStream.rangeClosed(1, docs)
-                            .boxed().collect(Collectors.toList()))
-                    .buffer(buffer)
+            Flux.range(1, docs).buffer(buffer)
                     .map(counterList -> {
-                                if (finalUseCount) {
+                                if (finalContentLimit > 0) {
                                     QueryResult result = cluster.query(query);
-                                    if(Long.parseLong(result.rowsAsObject().get(0).get("count").toString()) >= finalDocs) {
+                                    if(Long.parseLong(result.rowsAsObject().get(0).get("count").toString()) >= finalContentLimit) {
                                         System.exit(0);
                                     }
                                 }
@@ -152,8 +145,6 @@ public class Main {
                     .count()
                     .single()
                     .block();
-
-
         }
     }
 
