@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 
 public class Main {
 
@@ -26,7 +27,7 @@ public class Main {
         String collectionName = "_default";
         boolean useCount = false;
         int buffer = 10000;
-        int docs = 10000000;
+        long docs = 10000000;
 
 
         CommandLine commandLine;
@@ -83,7 +84,7 @@ public class Main {
             if (commandLine.hasOption("n"))
             {
                 System.out.printf("docs to save: %s%n", commandLine.getOptionValue("n"));
-                docs = Integer.parseInt(commandLine.getOptionValue("n"));
+                docs = Long.parseLong(commandLine.getOptionValue("n"));
             }
             if (commandLine.hasOption("b"))
             {
@@ -133,17 +134,17 @@ public class Main {
 
             String finalCollectionName = collectionName;
             boolean finalUseCount = useCount;
-            int finalDocs = docs;
+            long finalDocs = docs;
             String finalBucketName = bucketName;
             String finalScopeName = scopeName;
-            Flux.fromIterable(IntStream.rangeClosed(1, docs)
+            Flux.fromIterable(LongStream.rangeClosed(1, docs)
                             .boxed().collect(Collectors.toList()))
                     .buffer(buffer)
                     .map(counterList -> {
                                 if (finalUseCount) {
                                     String query = "select COUNT(*) as count from " + finalBucketName + "." + finalScopeName + "." + finalCollectionName;
                                     QueryResult result = cluster.query(query);
-                                    if(Integer.parseInt(result.rowsAsObject().get(0).get("count").toString()) >= finalDocs) {
+                                    if(Long.parseLong(result.rowsAsObject().get(0).get("count").toString()) >= finalDocs) {
                                         System.exit(0);
                                     }
                                 }
