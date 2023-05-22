@@ -2,6 +2,7 @@ package org.ingestor;
 
 import com.couchbase.client.core.retry.BestEffortRetryStrategy;
 import com.couchbase.client.java.*;
+import com.couchbase.client.java.query.QueryResult;
 import org.apache.commons.cli.*;
 import reactor.core.publisher.Flux;
 
@@ -23,8 +24,9 @@ public class Main {
         String bucketName = "sample";
         String scopeName = "_default";
         String collectionName = "_default";
+        boolean useCount = false;
         int buffer = 10000;
-        int docs = 10_000_000;
+        int docs = 10000000;
 
 
         CommandLine commandLine;
@@ -36,6 +38,7 @@ public class Main {
         Option option_s = Option.builder("s").argName("scope").hasArg().desc("couchbase scope").build();
         Option option_c = Option.builder("c").argName("collection").hasArg().desc("couchbase collection").build();
         Option option_docs = Option.builder("n").argName("num-of-docs").hasArg().desc("docs to create").build();
+        Option option_use_count = Option.builder("uc").argName("use-count").desc("count doc present in collection to know when to stop").build();
 
         Options options = new Options();
         CommandLineParser parser = new DefaultParser();
@@ -48,6 +51,7 @@ public class Main {
         options.addOption(option_c);
         options.addOption(option_s);
         options.addOption(option_f);
+        options.addOption(option_use_count);
 
         String header = "               [<arg1> [<arg2> [<arg3> ...\n       Options, flags and arguments may be in any order";
         HelpFormatter formatter = new HelpFormatter();
@@ -101,6 +105,11 @@ public class Main {
                 System.out.printf("buffer: %s%n", commandLine.getOptionValue("f"));
                 buffer = Integer.parseInt(commandLine.getOptionValue("f"));
             }
+            if (commandLine.hasOption("u"))
+            {
+                System.out.print("use count: true");
+                useCount = true;
+            }
         }
         catch (ParseException exception)
         {
@@ -122,17 +131,32 @@ public class Main {
             ReactiveScope scope = bucket.scope(scopeName);
             ReactiveCollection collection = scope.collection(collectionName);
 
+            String finalCollectionName = collectionName;
+            boolean finalUseCount = useCount;
+            int finalDocs = docs;
+            String finalBucketName = bucketName;
+            String finalScopeName = scopeName;
             Flux.fromIterable(IntStream.rangeClosed(1, docs)
                             .boxed().collect(Collectors.toList()))
                     .buffer(buffer)
-                    .map(counterList ->
-                            Flux.fromIterable(counterList).flatMap(counter ->
-                                    collection.upsert(UUID.randomUUID().toString(),
-                                            docGenerator.generateDoc(counter))).count().single().block()
+                    .map(counterList -> {
+                                if (finalUseCount) {
+                                    String query = "select COUNT(*) as count from " + finalBucketName + "." + finalScopeName + "." + finalCollectionName;
+                                    QueryResult result = cluster.query(query);
+                                    if(Integer.parseInt(result.rowsAsObject().get(0).get("count").toString()) >= finalDocs) {
+                                        System.exit(0);
+                                    }
+                                }
+                                return Flux.fromIterable(counterList).flatMap(counter ->
+                                        collection.upsert(UUID.randomUUID().toString(),
+                                                docGenerator.generateDoc(counter))).count().single().block();
+                            }
                     )
                     .count()
                     .single()
                     .block();
+
+
         }
     }
 
