@@ -129,7 +129,7 @@ public class Main {
         }
 
         if(shuffle){
-            prefix = RandomStringUtils.randomAlphabetic(2).toUpperCase();
+            prefix = RandomStringUtils.randomAlphabetic(3).toUpperCase();
         }
 
         try (
