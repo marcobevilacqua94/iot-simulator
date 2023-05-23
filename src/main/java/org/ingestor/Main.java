@@ -30,6 +30,7 @@ public class Main {
         int buffer = 1000;
         long docs = 0L;
         long contentLimit = 0L;
+        int shuffle_len = 3;
 
 
         CommandLine commandLine;
@@ -45,6 +46,7 @@ public class Main {
         Option option_prefix = Option.builder("pr").argName("prefix").hasArg().desc("prefix to prepend to the key").build();
         Option option_start_seq = Option.builder("st").argName("start-seq").hasArg().desc("start from this key (prefix + this integer key)").build();
         Option option_shuffle = Option.builder("sh").argName("shuffle").desc("shuffle prefix to avoid overwriting keys").build();
+        Option option_shuffle_len = Option.builder("shl").argName("shuffle-len").hasArg().desc("shuffle prefix length").build();
 
         Options options = new Options();
         CommandLineParser parser = new DefaultParser();
@@ -61,6 +63,7 @@ public class Main {
         options.addOption(option_prefix);
         options.addOption(option_start_seq);
         options.addOption(option_shuffle);
+        options.addOption(option_shuffle_len);
 
         String header = "               [<arg1> [<arg2> [<arg3> ...\n       Options, flags and arguments may be in any order";
         HelpFormatter formatter = new HelpFormatter();
@@ -121,6 +124,10 @@ public class Main {
                 System.out.print("shuffle enabled");
                 shuffle = true;
             }
+            if (commandLine.hasOption("shl")) {
+                System.out.printf("shuffle length: %s%n", commandLine.getOptionValue("shl"));
+                shuffle_len = Integer.parseInt(commandLine.getOptionValue("shl"));
+            }
 
 
         } catch (ParseException exception) {
@@ -129,7 +136,7 @@ public class Main {
         }
 
         if(shuffle){
-            prefix = RandomStringUtils.randomAlphabetic(3).toUpperCase();
+            prefix = RandomStringUtils.randomAlphabetic(shuffle_len).toUpperCase();
         }
 
         try (
