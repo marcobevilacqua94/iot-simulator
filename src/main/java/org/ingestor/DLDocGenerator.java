@@ -97,7 +97,7 @@ public class DLDocGenerator implements DocGenerator {
     }
 
     private String generateObjectChanges(){
-        return loremSentence.repeat(10 + rand.nextInt(89));
+        return loremSentence.repeat(1 + rand.nextInt(6));
     }
 
 
