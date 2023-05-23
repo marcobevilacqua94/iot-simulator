@@ -16,10 +16,10 @@ public class DLDocGenerator implements DocGenerator {
 
     private final String loremSentence = "Lorem ipsum repellendus necessitatibus culpa blanditiis consequuntur dolor.";
 
-    public JsonObject generateDoc(){
+    public JsonObject generateDoc(String prefix, long counter){
         return JsonObject.create()
                 .put("_id", generateOid())
-                .put("id", Long.parseLong(generateNatId()))
+                .put("id", prefix + ":" + counter)
                 .put("item_type", "Appointment")
                 .put("item_id", Long.parseLong(generateNatId()))
                 .put("event",returnRandom(events))
