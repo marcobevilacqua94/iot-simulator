@@ -6,9 +6,9 @@ import com.couchbase.client.java.query.QueryResult;
 import org.apache.commons.cli.*;
 import org.apache.commons.lang3.RandomStringUtils;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
-import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Main {
@@ -30,7 +30,8 @@ public class Main {
         int buffer = 1000;
         long docs = 0L;
         long contentLimit = 0L;
-        int shuffle_len = 3;
+        int shuffleLen = 3;
+        int numThread = 4;
 
 
         CommandLine commandLine;
@@ -47,6 +48,7 @@ public class Main {
         Option option_start_seq = Option.builder("st").argName("start-seq").hasArg().desc("start from this key (prefix + this integer key)").build();
         Option option_shuffle = Option.builder("sh").argName("shuffle").desc("shuffle prefix to avoid overwriting keys").build();
         Option option_shuffle_len = Option.builder("shl").argName("shuffle-len").hasArg().desc("shuffle prefix length").build();
+        Option option_num_threads = Option.builder("t").argName("num-threads").hasArg().desc("number of threads to use").build();
 
         Options options = new Options();
         CommandLineParser parser = new DefaultParser();
@@ -64,6 +66,7 @@ public class Main {
         options.addOption(option_start_seq);
         options.addOption(option_shuffle);
         options.addOption(option_shuffle_len);
+        options.addOption(option_num_threads);
 
         String header = "               [<arg1> [<arg2> [<arg3> ...\n       Options, flags and arguments may be in any order";
         HelpFormatter formatter = new HelpFormatter();
@@ -126,7 +129,11 @@ public class Main {
             }
             if (commandLine.hasOption("shl")) {
                 System.out.printf("shuffle length: %s%n", commandLine.getOptionValue("shl"));
-                shuffle_len = Integer.parseInt(commandLine.getOptionValue("shl"));
+                shuffleLen = Integer.parseInt(commandLine.getOptionValue("shl"));
+            }
+            if (commandLine.hasOption("t")) {
+                System.out.printf("number of threads: %s%n", commandLine.getOptionValue("t"));
+                numThread = Integer.parseInt(commandLine.getOptionValue("t"));
             }
 
 
@@ -136,7 +143,7 @@ public class Main {
         }
 
         if(shuffle){
-            prefix = RandomStringUtils.randomAlphabetic(shuffle_len).toUpperCase();
+            prefix = RandomStringUtils.randomAlphabetic(shuffleLen).toUpperCase();
         }
 
         try (
@@ -156,9 +163,10 @@ public class Main {
             long finalDocs = docs;
             String query = "select COUNT(*) as count from `" + bucketName + "`.`" + scopeName + "`.`" + collectionName + "`";
             AtomicReference<Long> counter = new AtomicReference<>();
+
             counter.set(start_seq);
             String finalPrefix = prefix;
-
+            int finalNumThread = numThread;
 
             Flux.generate(() -> 0, (i, sink) ->
                     {
@@ -175,22 +183,43 @@ public class Main {
                                         System.exit(0);
                                     }
                                 }
-                                return Flux.fromIterable(counterList).flatMap(count -> {
+                                return Flux.fromIterable(counterList)
+                                     //   .parallel(finalNumThread)
+                                   //     .runOn(Schedulers.parallel())
+                                        .flatMap(count -> {
                                                     long counterToPut = counter.getAndAccumulate(1L, Long::sum);
                                                     return collection.upsert(
                                                             finalPrefix.equals("") ? String.valueOf(counterToPut) : finalPrefix + ":" + counterToPut,
                                                             docGenerator.generateDoc(finalPrefix, counterToPut));
                                                 }
                                         )
-                                        .count().single().block();
-
-
+                                     //   .sequential()
+                                        .count()
+                                        .single()
+                                        .block();
                             }
                     )
                     .count()
                     .single()
                     .block();
         }
+
+//            ExecutorService executor = Executors.newFixedThreadPool(numThread);
+//
+//            for(int i = 0; i < numThread; i++){
+//                executor.execute(runnableTask);
+//            }
+//
+//            boolean completed = executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+//            if(completed){
+//                System.out.println("Completed without errors");
+//            } else {
+//                System.out.println("Completed with errors");
+//            }
+//
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
 
     }
 
