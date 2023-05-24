@@ -3,12 +3,18 @@ package org.ingestor;
 import com.couchbase.client.core.retry.BestEffortRetryStrategy;
 import com.couchbase.client.java.*;
 import com.couchbase.client.java.query.QueryResult;
+import com.couchbase.client.java.transactions.config.TransactionsCleanupConfig;
+import com.couchbase.client.java.transactions.config.TransactionsConfig;
 import org.apache.commons.cli.*;
 import org.apache.commons.lang3.RandomStringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
+import java.time.temporal.TemporalUnit;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Main {
@@ -27,7 +33,7 @@ public class Main {
         String prefix = "";
         boolean shuffle = false;
         long start_seq = 0L;
-        int buffer = 1000;
+        int buffer = 10000;
         long docs = 0L;
         long contentLimit = 0L;
         int shuffleLen = 3;
@@ -117,7 +123,7 @@ public class Main {
             }
             if (commandLine.hasOption("pr")) {
                 System.out.printf("prefix: %s%n", commandLine.getOptionValue("pr"));
-                prefix = commandLine.getOptionValue("pr");
+                prefix = commandLine.getOptionValue("pr") + ":";
             }
             if (commandLine.hasOption("st")) {
                 System.out.printf("content limit: %s%n", commandLine.getOptionValue("st"));
@@ -142,86 +148,94 @@ public class Main {
             System.out.println(exception.getMessage());
         }
 
-        if(shuffle){
+        if (shuffle) {
             prefix = RandomStringUtils.randomAlphabetic(shuffleLen).toUpperCase();
         }
-
+        int finalNumThread = numThread;
         try (
                 Cluster cluster = Cluster.connect(
                         ip,
-                        ClusterOptions.clusterOptions(username, password).environment(env -> {
-                            env.retryStrategy(BestEffortRetryStrategy.withExponentialBackoff(Duration.ofNanos(1000),
-                                    Duration.ofMillis(1), 2));
-                            // Customize client settings by calling methods on the "env" variable.
-                        })
-                )) {
+                        ClusterOptions.clusterOptions(username, password)
 
+                )
+        ) {
+            cluster.waitUntilReady(Duration.ofSeconds(20));
             ReactiveBucket bucket = cluster.bucket(bucketName).reactive();
             ReactiveScope scope = bucket.scope(scopeName);
             ReactiveCollection collection = scope.collection(collectionName);
             long finalContentLimit = contentLimit;
             long finalDocs = docs;
+
             String query = "select COUNT(*) as count from `" + bucketName + "`.`" + scopeName + "`.`" + collectionName + "`";
-            AtomicReference<Long> counter = new AtomicReference<>();
-
-            counter.set(start_seq);
             String finalPrefix = prefix;
-            int finalNumThread = numThread;
 
-            Flux.generate(() -> 0, (i, sink) ->
+            long finalStart_seq = start_seq;
+
+
+
+            Flux.generate(() -> 0L, (i, sink) ->
                     {
                         sink.next(i);
                         if (finalDocs != 0 && i > finalDocs) {
                             sink.complete();
                         }
                         return i + 1;
-                    }).buffer(buffer)
-                    .map(counterList -> {
-                                if (finalContentLimit > 0) {
-                                    QueryResult result = cluster.query(query);
-                                    if (Long.parseLong(result.rowsAsObject().get(0).get("count").toString()) >= finalContentLimit) {
-                                        System.exit(0);
-                                    }
-                                }
-                                return Flux.fromIterable(counterList)
-                                     //   .parallel(finalNumThread)
-                                   //     .runOn(Schedulers.parallel())
-                                        .flatMap(count -> {
-                                                    long counterToPut = counter.getAndAccumulate(1L, Long::sum);
-                                                    return collection.upsert(
-                                                            finalPrefix.equals("") ? String.valueOf(counterToPut) : finalPrefix + ":" + counterToPut,
-                                                            docGenerator.generateDoc(finalPrefix, counterToPut));
+                    })
+
+                    .flatMap(count -> {
+                                                if (finalContentLimit > 0) {
+                                                    if (Math.random() > 0.9999) {
+                                                        QueryResult result = cluster.query(query);
+                                                        if (Long.parseLong(result.rowsAsObject().get(0).get("count").toString()) >= finalContentLimit) {
+                                                            System.exit(0);
+                                                        }
+                                                    }
                                                 }
-                                        )
-                                     //   .sequential()
-                                        .count()
-                                        .single()
-                                        .block();
-                            }
-                    )
-                    .count()
-                    .single()
+                                                return collection.upsert(
+                                                        finalPrefix + count,
+                                                        docGenerator.generateDoc(finalPrefix, finalStart_seq + (long) count));
+                                            }
+                                    )
+
+                    .collectList()
                     .block();
         }
-
-//            ExecutorService executor = Executors.newFixedThreadPool(numThread);
-//
-//            for(int i = 0; i < numThread; i++){
-//                executor.execute(runnableTask);
-//            }
-//
-//            boolean completed = executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-//            if(completed){
-//                System.out.println("Completed without errors");
-//            } else {
-//                System.out.println("Completed with errors");
-//            }
-//
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
-
     }
+
+//        Flux.generate(() -> 0L, (i, sink) ->
+//                {
+//                    sink.next(i);
+//                    if (finalDocs != 0 && i > finalDocs) {
+//                        sink.complete();
+//                    }
+//                    return i + 1;
+//                })
+//                .buffer()
+//                .parallel()
+//                .map(countList -> Flux.fromIterable(countList).flatMap(count -> {
+//                                            if (finalContentLimit > 0) {
+//                                                if (Math.random() > 0.9999) {
+//                                                    QueryResult result = cluster.query(query);
+//                                                    if (Long.parseLong(result.rowsAsObject().get(0).get("count").toString()) >= finalContentLimit) {
+//                                                        System.exit(0);
+//                                                    }
+//                                                }
+//                                            }
+//                                            return collection.upsert(
+//                                                    finalPrefix + count,
+//                                                    docGenerator.generateDoc(finalPrefix, finalStart_seq + (long) count));
+//                                        }
+//                                )
+//                                .collectList()
+//                                .block()
+//
+//                )
+//                .sequential()
+//                .collectList()
+//                .block();
+//    }
+//
+//    }
 
 
 }
