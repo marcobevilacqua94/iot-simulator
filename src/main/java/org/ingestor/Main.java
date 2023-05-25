@@ -22,7 +22,7 @@ public class Main {
         String prefix = "";
         boolean shuffle = false;
         long start_seq = 0L;
-        int buffer = 1000;
+        int buffer = 100;
         long docs = 0L;
         long contentLimit = 0L;
         int shuffleLen = 3;
@@ -145,12 +145,9 @@ public class Main {
             ReactiveCollection collection = scope.collection(collectionName);
             long finalContentLimit = contentLimit;
             long finalDocs = docs;
-
             String query = "select COUNT(*) as count from `" + bucketName + "`.`" + scopeName + "`.`" + collectionName + "`";
             String finalPrefix = prefix;
-
             long finalStart_seq = start_seq;
-            double queryRatio = (double) 10 / buffer;
 
             Flux.generate(() -> 0L, (i, sink) ->
                     {
@@ -161,24 +158,24 @@ public class Main {
                         return i + 1;
                     })
                     .buffer(buffer)
-                    .map(countList -> Flux.fromIterable(countList).parallel().flatMap(count -> {
-                                                if (finalContentLimit > 0) {
-                                                    if (Math.random() < queryRatio) {
-                                                        QueryResult result = cluster.query(query);
-                                                        if (Long.parseLong(result.rowsAsObject().get(0).get("count").toString()) >= finalContentLimit) {
-                                                            System.exit(0);
-                                                        }
-                                                    }
-                                                }
-                                                return collection.upsert(
+                    .map(countList -> {
+                                if (finalContentLimit > 0) {
+                                    QueryResult result = cluster.query(query);
+                                    if (Long.parseLong(result.rowsAsObject().get(0).get("count").toString()) >= finalContentLimit) {
+                                        System.exit(0);
+                                    }
+                                }
+                                return Flux.fromIterable(countList)
+                                        .parallel()
+                                        .flatMap(count ->
+                                                collection.upsert(
                                                         finalPrefix + count,
-                                                        docGenerator.generateDoc(finalPrefix, finalStart_seq + (long) count));
-                                            }
-                                    )
-                                    .sequential()
-                                    .collectList()
-                                    .block()
-
+                                                        docGenerator.generateDoc(finalPrefix, finalStart_seq + (long) count))
+                                        )
+                                        .sequential()
+                                        .collectList()
+                                        .block();
+                            }
                     )
                     .collectList()
                     .block();
