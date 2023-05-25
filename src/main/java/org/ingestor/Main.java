@@ -151,9 +151,8 @@ public class Main {
             String finalPrefix = prefix;
 
             long finalStart_seq = start_seq;
-
-
             double queryRatio = (double) 10 / buffer;
+
             Flux.generate(() -> 0L, (i, sink) ->
                     {
                         sink.next(i);
