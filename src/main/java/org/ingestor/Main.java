@@ -153,6 +153,7 @@ public class Main {
             long finalStart_seq = start_seq;
 
 
+            double queryRatio = (double) 10 / buffer;
             Flux.generate(() -> 0L, (i, sink) ->
                     {
                         sink.next(i);
@@ -165,7 +166,7 @@ public class Main {
                     .parallel()
                     .map(countList -> Flux.fromIterable(countList).parallel().flatMap(count -> {
                                                 if (finalContentLimit > 0) {
-                                                    if (Math.random() > 0.9999) {
+                                                    if (Math.random() < queryRatio) {
                                                         QueryResult result = cluster.query(query);
                                                         if (Long.parseLong(result.rowsAsObject().get(0).get("count").toString()) >= finalContentLimit) {
                                                             System.exit(0);
