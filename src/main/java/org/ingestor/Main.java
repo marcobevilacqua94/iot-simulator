@@ -32,7 +32,7 @@ public class Main {
         Option option_u = Option.builder("u").argName("username").hasArg().desc("couchbase username").build();
         Option option_p = Option.builder("p").argName("password").hasArg().desc("couchbase password").build();
         Option option_b = Option.builder("b").argName("bucket").hasArg().desc("couchbase bucket").build();
-        Option option_f = Option.builder("f").argName("buffer").hasArg().desc("buffer").build();
+        Option option_f = Option.builder("bf").argName("buffer").hasArg().desc("buffer").build();
         Option option_s = Option.builder("s").argName("scope").hasArg().desc("couchbase scope").build();
         Option option_c = Option.builder("c").argName("collection").hasArg().desc("couchbase collection").build();
         Option option_docs = Option.builder("n").argName("num-of-docs").hasArg().desc("docs to create").build();
@@ -98,9 +98,9 @@ public class Main {
                 System.out.printf("couchbase collection: %s%n", commandLine.getOptionValue("c"));
                 collectionName = commandLine.getOptionValue("c");
             }
-            if (commandLine.hasOption("f")) {
-                System.out.printf("buffer: %s%n", commandLine.getOptionValue("f"));
-                buffer = Integer.parseInt(commandLine.getOptionValue("f"));
+            if (commandLine.hasOption("bf")) {
+                System.out.printf("buffer: %s%n", commandLine.getOptionValue("bf"));
+                buffer = Integer.parseInt(commandLine.getOptionValue("bf"));
             }
             if (commandLine.hasOption("cl")) {
                 System.out.printf("content limit: %s%n", commandLine.getOptionValue("cl"));
@@ -137,7 +137,6 @@ public class Main {
                 Cluster cluster = Cluster.connect(
                         ip,
                         ClusterOptions.clusterOptions(username, password)
-
                 )
         ) {
 
