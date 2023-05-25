@@ -1,21 +1,10 @@
 package org.ingestor;
 
-import com.couchbase.client.core.retry.BestEffortRetryStrategy;
 import com.couchbase.client.java.*;
 import com.couchbase.client.java.query.QueryResult;
-import com.couchbase.client.java.transactions.config.TransactionsCleanupConfig;
-import com.couchbase.client.java.transactions.config.TransactionsConfig;
 import org.apache.commons.cli.*;
 import org.apache.commons.lang3.RandomStringUtils;
 import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Schedulers;
-
-import java.time.Duration;
-import java.time.temporal.TemporalUnit;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class Main {
 
@@ -33,12 +22,10 @@ public class Main {
         String prefix = "";
         boolean shuffle = false;
         long start_seq = 0L;
-        int buffer = 10000;
+        int buffer = 1000;
         long docs = 0L;
         long contentLimit = 0L;
         int shuffleLen = 3;
-        int numThread = 4;
-
 
         CommandLine commandLine;
         Option option_h = Option.builder("h").argName("host").hasArg().desc("couchbase ip").build();
@@ -54,7 +41,6 @@ public class Main {
         Option option_start_seq = Option.builder("st").argName("start-seq").hasArg().desc("start from this key (prefix + this integer key)").build();
         Option option_shuffle = Option.builder("sh").argName("shuffle").desc("shuffle prefix to avoid overwriting keys").build();
         Option option_shuffle_len = Option.builder("shl").argName("shuffle-len").hasArg().desc("shuffle prefix length").build();
-        Option option_num_threads = Option.builder("t").argName("num-threads").hasArg().desc("number of threads to use").build();
 
         Options options = new Options();
         CommandLineParser parser = new DefaultParser();
@@ -72,7 +58,6 @@ public class Main {
         options.addOption(option_start_seq);
         options.addOption(option_shuffle);
         options.addOption(option_shuffle_len);
-        options.addOption(option_num_threads);
 
         String header = "               [<arg1> [<arg2> [<arg3> ...\n       Options, flags and arguments may be in any order";
         HelpFormatter formatter = new HelpFormatter();
@@ -137,10 +122,6 @@ public class Main {
                 System.out.printf("shuffle length: %s%n", commandLine.getOptionValue("shl"));
                 shuffleLen = Integer.parseInt(commandLine.getOptionValue("shl"));
             }
-            if (commandLine.hasOption("t")) {
-                System.out.printf("number of threads: %s%n", commandLine.getOptionValue("t"));
-                numThread = Integer.parseInt(commandLine.getOptionValue("t"));
-            }
 
 
         } catch (ParseException exception) {
@@ -151,7 +132,7 @@ public class Main {
         if (shuffle) {
             prefix = RandomStringUtils.randomAlphabetic(shuffleLen).toUpperCase();
         }
-        int finalNumThread = numThread;
+
         try (
                 Cluster cluster = Cluster.connect(
                         ip,
@@ -159,7 +140,7 @@ public class Main {
 
                 )
         ) {
-            cluster.waitUntilReady(Duration.ofSeconds(20));
+
             ReactiveBucket bucket = cluster.bucket(bucketName).reactive();
             ReactiveScope scope = bucket.scope(scopeName);
             ReactiveCollection collection = scope.collection(collectionName);
@@ -172,7 +153,6 @@ public class Main {
             long finalStart_seq = start_seq;
 
 
-
             Flux.generate(() -> 0L, (i, sink) ->
                     {
                         sink.next(i);
@@ -181,8 +161,9 @@ public class Main {
                         }
                         return i + 1;
                     })
-
-                    .flatMap(count -> {
+                    .buffer(buffer)
+                    .parallel()
+                    .map(countList -> Flux.fromIterable(countList).parallel().flatMap(count -> {
                                                 if (finalContentLimit > 0) {
                                                     if (Math.random() > 0.9999) {
                                                         QueryResult result = cluster.query(query);
@@ -196,46 +177,15 @@ public class Main {
                                                         docGenerator.generateDoc(finalPrefix, finalStart_seq + (long) count));
                                             }
                                     )
+                                    .sequential()
+                                    .collectList()
+                                    .block()
 
+                    )
+                    .sequential()
                     .collectList()
                     .block();
         }
     }
-
-//        Flux.generate(() -> 0L, (i, sink) ->
-//                {
-//                    sink.next(i);
-//                    if (finalDocs != 0 && i > finalDocs) {
-//                        sink.complete();
-//                    }
-//                    return i + 1;
-//                })
-//                .buffer()
-//                .parallel()
-//                .map(countList -> Flux.fromIterable(countList).flatMap(count -> {
-//                                            if (finalContentLimit > 0) {
-//                                                if (Math.random() > 0.9999) {
-//                                                    QueryResult result = cluster.query(query);
-//                                                    if (Long.parseLong(result.rowsAsObject().get(0).get("count").toString()) >= finalContentLimit) {
-//                                                        System.exit(0);
-//                                                    }
-//                                                }
-//                                            }
-//                                            return collection.upsert(
-//                                                    finalPrefix + count,
-//                                                    docGenerator.generateDoc(finalPrefix, finalStart_seq + (long) count));
-//                                        }
-//                                )
-//                                .collectList()
-//                                .block()
-//
-//                )
-//                .sequential()
-//                .collectList()
-//                .block();
-//    }
-//
-//    }
-
 
 }
