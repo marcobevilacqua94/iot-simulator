@@ -22,7 +22,7 @@ public class Main {
         String prefix = "";
         boolean shuffle = false;
         long start_seq = 0L;
-        int buffer = 100;
+        int buffer = 1000;
         long docs = 0L;
         long contentLimit = 0L;
         int shuffleLen = 3;
