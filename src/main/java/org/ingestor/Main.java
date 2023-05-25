@@ -163,7 +163,6 @@ public class Main {
                         return i + 1;
                     })
                     .buffer(buffer)
-                    .parallel()
                     .map(countList -> Flux.fromIterable(countList).parallel().flatMap(count -> {
                                                 if (finalContentLimit > 0) {
                                                     if (Math.random() < queryRatio) {
@@ -183,7 +182,6 @@ public class Main {
                                     .block()
 
                     )
-                    .sequential()
                     .collectList()
                     .block();
         }
