@@ -25,6 +25,7 @@ inserts-per-second: 100
 The collection were the sensors write is supposed to have a short time to live (to save space).
 To aggregate data with and eventing function and use timeseries feature of couchbase, **build an eventing function like this one** 
 
+This function aggregates data in the same 10 seconds window (-> ```doc.timestamp.toString().substring(0,9)```)
 tgt is the collection where you want to aggregate the data. The function must listen to where the sensors write. 
 Use a From Now on policy.
 
