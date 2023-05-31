@@ -1,8 +1,0 @@
-package org.ingestor;
-
-import com.couchbase.client.java.json.JsonObject;
-
-public interface DocGenerator {
-
-    JsonObject generateDoc(String prefix, long counter);
-}

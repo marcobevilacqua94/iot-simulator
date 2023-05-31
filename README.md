@@ -1,4 +1,4 @@
-# ingestor
+# iot_simulator
 
 use it with
 
