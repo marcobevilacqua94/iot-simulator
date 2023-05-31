@@ -28,7 +28,7 @@ To aggregate data with and eventing function and use timeseries feature of couch
 
 This function aggregates data in the same 10 seconds window (-> ```doc.timestamp.toString().substring(0,9)```)
 tgt is the collection where you want to aggregate the data. The function must listen to where the sensors write. 
-Use a From Now on policy.
+Use a From Now on policy. Use ts_interval and add only the temperature to the array of values (not the array couple temperature + timestamp) if you want to use regular intervals. 
 
 ```
 function OnUpdate(doc, meta) {
