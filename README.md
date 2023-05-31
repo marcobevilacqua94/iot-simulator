@@ -9,6 +9,7 @@ docker run marcobevilacqua94/iot_simulator:latest java -jar iot_simulator.jar -h
 ```
 
 inserts-per-second are referred to single sensor
+max-time is in seconds, after this time the program stops 
 
 default values for parameters are
 ```
