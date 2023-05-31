@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: Pod
-metadata:
-  name: ingestor-pod0
-spec:
-  containers:
-    - name: ingestor
-      image: marcobevilacqua94/ingestor:latest
-      command: ["java","-jar","ingestor.jar","-h","cb-example-persistent"]
