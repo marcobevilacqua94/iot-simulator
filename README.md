@@ -21,7 +21,7 @@ scope-name: _default
 collection-name: source
 sensors: 5
 max-time: 0 (infinte)
-inserts-per-second: 100
+inserts-per-second: 5
 time-to-live: 60
 ```
 The collection were the sensors write is supposed to have a short time to live (to save space).
@@ -74,7 +74,7 @@ WITH range_start as (STR_TO_MILLIS("2023-05-01T00:00:00Z")), range_end as (STR_T
 SELECT MILLIS_TO_TZ(t._t,"UTC") AS date, t._v0 AS temperature
 FROM target AS d
 UNNEST _timeseries(d, {"ts_ranges": [range_start, range_end]}) AS t
-WHERE d.device= 50 AND (d.ts_start <= range_end AND d.ts_end >= range_start);
+WHERE d.device= 0 AND (d.ts_start <= range_end AND d.ts_end >= range_start);
 ```
 
 **MULTIPLE SENSORS - USE X-Y**
@@ -82,7 +82,7 @@ WHERE d.device= 50 AND (d.ts_start <= range_end AND d.ts_end >= range_start);
 WITH range_start as (STR_TO_MILLIS("2023-05-01T00:00:00Z")), range_end as (STR_TO_MILLIS("2023-06-30T00:00:00Z"))SELECT MILLIS_TO_TZ(t._t,"UTC") AS date, t._v0 AS temperature, d.device as sensor
 FROM target AS d
 UNNEST _timeseries(d, {"ts_ranges": [range_start, range_end]}) AS t
-WHERE d.device in [45,46,47,48,49,50,51,52,53,54] AND (d.ts_start <= range_end AND d.ts_end >= range_start);
+WHERE d.device in [0,1,2,3,4] AND (d.ts_start <= range_end AND d.ts_end >= range_start);
 ```
 
 **THREE SECONDS MOVING AVERAGE - USE MULTI-LINE BY COLUMNS** 
@@ -90,7 +90,7 @@ WHERE d.device in [45,46,47,48,49,50,51,52,53,54] AND (d.ts_start <= range_end A
 WITH range_start as (STR_TO_MILLIS("2023-05-01T00:00:00Z")), range_end as (STR_TO_MILLIS("2023-06-30T00:00:00Z"))
 SELECT MILLIS_TO_TZ(second * 1000, "UTC") AS date, second_avg, AVG(second_avg) OVER (ORDER BY second ROWS 3 PRECEDING) AS three_seconds_mov_avg 
 FROM target AS d UNNEST _timeseries(d, {"ts_ranges": [range_start, range_end]}) AS t 
-WHERE (d.ts_start <= range_end AND d.ts_end >= range_start) AND d.device = 50
+WHERE (d.ts_start <= range_end AND d.ts_end >= range_start) AND d.device = 0
 GROUP BY IDIV(t._t, 1000) AS second LETTING second_avg = AVG(t._v0);
 ```
 
@@ -101,6 +101,6 @@ SELECT MILLIS_TO_TZ(second * 1000, "UTC") AS date, second_avg as A_second_avg,
 AVG(second_avg) OVER (ORDER BY second ROWS 3 PRECEDING) AS B_three_seconds_mov_avg,
 AVG(second_avg) OVER (ORDER BY second ROWS 5 PRECEDING) AS C_five_seconds_mov_avg 
 FROM target AS d UNNEST _timeseries(d, {"ts_ranges": [range_start, range_end]}) AS t 
-WHERE (d.ts_start <= range_end AND d.ts_end >= range_start) AND d.device = 50 
+WHERE (d.ts_start <= range_end AND d.ts_end >= range_start) AND d.device = 0 
 GROUP BY IDIV(t._t, 1000) AS second LETTING second_avg = AVG(t._v0);
 ```

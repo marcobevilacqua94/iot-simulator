@@ -7,6 +7,7 @@ import org.apache.commons.cli.*;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class Main {
@@ -23,7 +24,7 @@ public class Main {
         String scopeName = "_default";
         String collectionName = "source";
         int sensors = 5;
-        int insertsPerSecond = 100;
+        int insertsPerSecond = 5;
         int maxTime = 0;
         int time_to_live = 60;
 
@@ -124,14 +125,19 @@ public class Main {
             ReactiveScope scope = bucket.scope(scopeName);
             ReactiveCollection collection = scope.collection(collectionName);
             Map<Long, Double> lastValues = new Hashtable<>();
-
+            Map<Long, Integer> sensorNames = new Hashtable<>();
+            AtomicInteger counter = new AtomicInteger(0);
             int finalTime_to_live = time_to_live;
             Runnable insertScheduled = () -> {
-                Double lastValue = lastValues.get(Thread.currentThread().getId());
-                JsonObject doc = docGenerator.generateDoc(new Date().getTime(), lastValue, Thread.currentThread().getId());
-                lastValues.put(Thread.currentThread().getId(), (Double) doc.get("temperature"));
+                long currentThread = Thread.currentThread().getId();
+                if(!sensorNames.containsKey(currentThread)){
+                    sensorNames.put(currentThread, counter.getAndIncrement());
+                }
+                Double lastValue = lastValues.get(currentThread);
+                JsonObject doc = docGenerator.generateDoc(new Date().getTime(), lastValue, sensorNames.get(currentThread));
+                lastValues.put(currentThread, (Double) doc.get("temperature"));
                 collection.upsert(
-                        "SENSOR" + Thread.currentThread().getId() + ":" + UUID.randomUUID(),
+                        "SENSOR" + sensorNames.get(currentThread) + ":" + UUID.randomUUID(),
                         doc,
                         UpsertOptions.upsertOptions().expiry(Duration.ofSeconds(finalTime_to_live))
                         ).block();
