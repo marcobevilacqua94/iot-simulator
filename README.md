@@ -85,7 +85,7 @@ UNNEST _timeseries(d, {"ts_ranges": [range_start, range_end]}) AS t
 WHERE d.device in [0,1,2,3,4] AND (d.ts_start <= range_end AND d.ts_end >= range_start);
 ```
 
-***MULTIPLE SENSORS - USE MULTI-LINE BY COLUMNS**
+**MULTIPLE SENSORS - USE MULTI-LINE BY COLUMNS**
 ```
 WITH device0data AS (
 SELECT MILLIS_TO_TZ(t._t,"UTC") AS date, t._v0 AS temperature0
@@ -106,7 +106,7 @@ JOIN device1data
 ON SUBSTR(device0data.date, 0, 19) = SUBSTR(device1data.date, 0, 19)
 ```
 
-**THREE SECONDS MOVING AVERAGE - USE MULTI-LINE BY COLUMNS** 
+**ONE, THREE SECONDS MOVING AVERAGE - USE MULTI-LINE BY COLUMNS** 
 ```
 WITH range_start as (STR_TO_MILLIS("2023-05-01T00:00:00Z")), range_end as (STR_TO_MILLIS("2023-06-30T00:00:00Z"))
 SELECT MILLIS_TO_TZ(second * 1000, "UTC") AS date, second_avg, AVG(second_avg) OVER (ORDER BY second ROWS 3 PRECEDING) AS three_seconds_mov_avg 
@@ -115,7 +115,7 @@ WHERE (d.ts_start <= range_end AND d.ts_end >= range_start) AND d.device = 0
 GROUP BY IDIV(t._t, 1000) AS second LETTING second_avg = AVG(t._v0);
 ```
 
-**THREE AND FIVE SECONDS MOVING AVERAGE - USE MULTI-LINE BY COLUMNS** 
+**ONE, THREE AND FIVE SECONDS MOVING AVERAGE - USE MULTI-LINE BY COLUMNS** 
 ```
 WITH range_start as (STR_TO_MILLIS("2023-05-01T00:00:00Z")), range_end as (STR_TO_MILLIS("2023-06-30T00:00:00Z"))
 SELECT MILLIS_TO_TZ(second * 1000, "UTC") AS date, second_avg as A_second_avg,
@@ -126,7 +126,7 @@ WHERE (d.ts_start <= range_end AND d.ts_end >= range_start) AND d.device = 0
 GROUP BY IDIV(t._t, 1000) AS second LETTING second_avg = AVG(t._v0);
 ```
 
-**THREE AND FIVE SECONDS MOVING AVERAGE - USE MULTI-LINE BY COLUMNS, TWO SENSORS**
+**ONE, THREE AND FIVE SECONDS MOVING AVERAGE - USE MULTI-LINE BY COLUMNS, TWO SENSORS**
 ```
 WITH device0data AS (
 WITH range_start as (STR_TO_MILLIS("2023-05-01T00:00:00Z")), range_end as (STR_TO_MILLIS("2023-06-30T00:00:00Z"))
@@ -155,7 +155,60 @@ JOIN device1data
 ON device0data.date = device1data.date
 ```
 
-**THREE AND FIVE SECONDS MOVING AVERAGE - USE MULTI-LINE BY COLUMNS, FIVE SENSORS**
+**ONE SECOND MOVING AVERAGE - USE MULTI-LINE BY COLUMNS, FIVE SENSORS**
+```
+WITH device0data AS (
+WITH range_start as (STR_TO_MILLIS("2023-05-01T00:00:00Z")), range_end as (STR_TO_MILLIS("2023-06-30T00:00:00Z"))
+SELECT MILLIS_TO_TZ(second * 1000, "UTC") AS date, second_avg as A_second_avg
+FROM target AS d UNNEST _timeseries(d, {"ts_ranges": [range_start, range_end]}) AS t
+WHERE (d.ts_start <= range_end AND d.ts_end >= range_start) AND d.device = 0
+GROUP BY IDIV(t._t, 1000) AS second LETTING second_avg = AVG(t._v0)
+), device1data AS (
+WITH range_start as (STR_TO_MILLIS("2023-05-01T00:00:00Z")), range_end as (STR_TO_MILLIS("2023-06-30T00:00:00Z"))
+SELECT MILLIS_TO_TZ(second * 1000, "UTC") AS date, second_avg as A_second_avg
+FROM target AS d UNNEST _timeseries(d, {"ts_ranges": [range_start, range_end]}) AS t
+WHERE (d.ts_start <= range_end AND d.ts_end >= range_start) AND d.device = 1
+GROUP BY IDIV(t._t, 1000) AS second LETTING second_avg = AVG(t._v0)
+), device2data AS (
+WITH range_start as (STR_TO_MILLIS("2023-05-01T00:00:00Z")), range_end as (STR_TO_MILLIS("2023-06-30T00:00:00Z"))
+SELECT MILLIS_TO_TZ(second * 1000, "UTC") AS date, second_avg as A_second_avg
+FROM target AS d UNNEST _timeseries(d, {"ts_ranges": [range_start, range_end]}) AS t
+WHERE (d.ts_start <= range_end AND d.ts_end >= range_start) AND d.device = 2
+GROUP BY IDIV(t._t, 1000) AS second LETTING second_avg = AVG(t._v0)
+), device3data AS (
+WITH range_start as (STR_TO_MILLIS("2023-05-01T00:00:00Z")), range_end as (STR_TO_MILLIS("2023-06-30T00:00:00Z"))
+SELECT MILLIS_TO_TZ(second * 1000, "UTC") AS date, second_avg as A_second_avg
+FROM target AS d UNNEST _timeseries(d, {"ts_ranges": [range_start, range_end]}) AS t
+WHERE (d.ts_start <= range_end AND d.ts_end >= range_start) AND d.device = 3
+GROUP BY IDIV(t._t, 1000) AS second LETTING second_avg = AVG(t._v0)
+), device4data AS (
+WITH range_start as (STR_TO_MILLIS("2023-05-01T00:00:00Z")), range_end as (STR_TO_MILLIS("2023-06-30T00:00:00Z"))
+SELECT MILLIS_TO_TZ(second * 1000, "UTC") AS date, second_avg as A_second_avg
+FROM target AS d UNNEST _timeseries(d, {"ts_ranges": [range_start, range_end]}) AS t
+WHERE (d.ts_start <= range_end AND d.ts_end >= range_start) AND d.device = 4
+GROUP BY IDIV(t._t, 1000) AS second LETTING second_avg = AVG(t._v0)
+)
+
+SELECT device0data.date as timestamp,
+device0data.A_second_avg as second_avg_0,
+device1data.A_second_avg as second_avg_1,
+device2data.A_second_avg as second_avg_2,
+device3data.A_second_avg as second_avg_3,
+device4data.A_second_avg as second_avg_4
+
+FROM
+device0data
+JOIN device1data
+ON device0data.date = device1data.date
+JOIN device2data
+ON device0data.date = device2data.date
+JOIN device3data
+ON device0data.date = device3data.date
+JOIN device4data
+ON device0data.date = device4data.date
+```
+
+**ONE, THREE AND FIVE SECONDS MOVING AVERAGE - USE MULTI-LINE BY COLUMNS, FIVE SENSORS**
 ```
 WITH device0data AS (
 WITH range_start as (STR_TO_MILLIS("2023-05-01T00:00:00Z")), range_end as (STR_TO_MILLIS("2023-06-30T00:00:00Z"))
