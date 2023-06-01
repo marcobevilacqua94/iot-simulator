@@ -5,7 +5,7 @@ Data is then prepared with eventing to be queried using timeseries.
 use it with
 
 ```
-docker run marcobevilacqua94/iot_simulator:latest java -jar iot_simulator.jar -h (host) -u (username) -p (password) -b (bucket-name) -s (scope-name) -c (collection-name) -se (sensors) -mt (max-seconds) -ips (inserts-per-second)
+docker run marcobevilacqua94/iot_simulator:latest java -jar iot_simulator.jar -h (host) -u (username) -p (password) -b (bucket-name) -s (scope-name) -c (collection-name) -se (sensors) -mt (max-seconds) -ips (inserts-per-second) -ttl (time-to-live)
 ```
 
 inserts-per-second are referred to single sensor
@@ -20,8 +20,9 @@ bucker-name: sample
 scope-name: _default
 collection-name: source
 sensors: 5
-max-time: 20
+max-time: 0 (infinte)
 inserts-per-second: 100
+time-to-live: 60
 ```
 The collection were the sensors write is supposed to have a short time to live (to save space).
 To aggregate data with and eventing function and use timeseries feature of couchbase, **build an eventing function like this one** 
@@ -62,7 +63,7 @@ function OnUpdate(doc, meta) {
 
 Now if you have a version of Couchbase which supports timeseries, **create this index** (target is the collection with timeseries data):
 ```
-CREATE INDEX "index1" ON `sample`.`_default`.`target`(`ts_start`, `ts_end`, `device`)
+CREATE INDEX index1 ON `sample`.`_default`.`target`(`ts_start`, `ts_end`, `device`)
 ```
 
 Now you can use the query engine to run this king of queries and produce charts in the UI (check the date ranges):

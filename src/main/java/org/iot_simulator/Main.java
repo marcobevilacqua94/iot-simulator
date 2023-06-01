@@ -2,6 +2,7 @@ package org.iot_simulator;
 
 import com.couchbase.client.java.*;
 import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.client.java.kv.UpsertOptions;
 import org.apache.commons.cli.*;
 import java.time.Duration;
 import java.util.*;
@@ -23,7 +24,8 @@ public class Main {
         String collectionName = "source";
         int sensors = 5;
         int insertsPerSecond = 100;
-        int maxTime = 20;
+        int maxTime = 0;
+        int time_to_live = 60;
 
 
         CommandLine commandLine;
@@ -36,6 +38,8 @@ public class Main {
         Option option_c = Option.builder("c").argName("collection").hasArg().desc("couchbase collection").build();
         Option option_mt = Option.builder("mt").argName("max_seconds").hasArg().desc("max seconds to run").build();
         Option option_ips = Option.builder("ips").argName("inserts_per_second").hasArg().desc("inserts per second for each sensor").build();
+        Option option_ttl = Option.builder("ttl").argName("time_to_live").hasArg().desc("time to live for the inserted documents").build();
+        
 
 
         Options options = new Options();
@@ -50,6 +54,7 @@ public class Main {
         options.addOption(option_f);
         options.addOption(option_mt);
         options.addOption(option_ips);
+        options.addOption(option_ttl);
 
         String header = "               [<arg1> [<arg2> [<arg3> ...\n       Options, flags and arguments may be in any order";
         HelpFormatter formatter = new HelpFormatter();
@@ -97,6 +102,10 @@ public class Main {
                 System.out.printf("inserts per second: %s%n", commandLine.getOptionValue("ips"));
                 insertsPerSecond = Integer.parseInt(commandLine.getOptionValue("ips"));
             }
+            if (commandLine.hasOption("ttl")) {
+                System.out.printf("time to live: %s%n", commandLine.getOptionValue("ttl"));
+                time_to_live = Integer.parseInt(commandLine.getOptionValue("ttl"));
+            }
         } catch (ParseException exception) {
             System.out.print("Parse error: ");
             System.out.println(exception.getMessage());
@@ -116,13 +125,15 @@ public class Main {
             ReactiveCollection collection = scope.collection(collectionName);
             Map<Long, Double> lastValues = new Hashtable<>();
 
+            int finalTime_to_live = time_to_live;
             Runnable insertScheduled = () -> {
                 Double lastValue = lastValues.get(Thread.currentThread().getId());
                 JsonObject doc = docGenerator.generateDoc(new Date().getTime(), lastValue, Thread.currentThread().getId());
                 lastValues.put(Thread.currentThread().getId(), (Double) doc.get("temperature"));
                 collection.upsert(
                         "SENSOR" + Thread.currentThread().getId() + ":" + UUID.randomUUID(),
-                        doc
+                        doc,
+                        UpsertOptions.upsertOptions().expiry(Duration.ofSeconds(finalTime_to_live))
                         ).block();
             };
 
@@ -132,8 +143,7 @@ public class Main {
                 ses.scheduleAtFixedRate(insertScheduled, 0, 1000/insertsPerSecond, TimeUnit.MILLISECONDS);
             }
 
-
-            boolean error = ses.awaitTermination(maxTime, TimeUnit.SECONDS);
+            boolean error = ses.awaitTermination(maxTime == 0 ? Integer.MAX_VALUE : maxTime, TimeUnit.SECONDS);
             ses.shutdown();
             System.out.println(error ? "finished without errors" : "finished with errors");
 
