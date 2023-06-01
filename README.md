@@ -79,7 +79,8 @@ WHERE d.device= 0 AND (d.ts_start <= range_end AND d.ts_end >= range_start);
 
 **MULTIPLE SENSORS - USE X-Y**
 ```
-WITH range_start as (STR_TO_MILLIS("2023-05-01T00:00:00Z")), range_end as (STR_TO_MILLIS("2023-06-30T00:00:00Z"))SELECT MILLIS_TO_TZ(t._t,"UTC") AS date, t._v0 AS temperature, d.device as sensor
+WITH range_start as (STR_TO_MILLIS("2023-05-01T00:00:00Z")), range_end as (STR_TO_MILLIS("2023-06-30T00:00:00Z"))
+SELECT MILLIS_TO_TZ(t._t,"UTC") AS date, t._v0 AS temperature, d.device as sensor
 FROM target AS d
 UNNEST _timeseries(d, {"ts_ranges": [range_start, range_end]}) AS t
 WHERE d.device in [0,1,2,3,4] AND (d.ts_start <= range_end AND d.ts_end >= range_start);
@@ -88,15 +89,17 @@ WHERE d.device in [0,1,2,3,4] AND (d.ts_start <= range_end AND d.ts_end >= range
 **MULTIPLE SENSORS - USE MULTI-LINE BY COLUMNS**
 ```
 WITH device0data AS (
+WITH range_start as (STR_TO_MILLIS("2023-05-01T00:00:00Z")), range_end as (STR_TO_MILLIS("2023-06-30T00:00:00Z"))
 SELECT MILLIS_TO_TZ(t._t,"UTC") AS date, t._v0 AS temperature0
 FROM target AS d
-UNNEST _timeseries(d) AS t
-WHERE d.device= 0 
+UNNEST _timeseries(d, {"ts_ranges": [range_start, range_end]}) AS t
+WHERE d.device= 0 AND (d.ts_start <= range_end AND d.ts_end >= range_start)
 ), device1data AS (
+WITH range_start as (STR_TO_MILLIS("2023-05-01T00:00:00Z")), range_end as (STR_TO_MILLIS("2023-06-30T00:00:00Z"))
 SELECT MILLIS_TO_TZ(t._t,"UTC") AS date, t._v0 AS temperature1
 FROM target AS d
-UNNEST _timeseries(d) AS t
-WHERE d.device= 1
+UNNEST _timeseries(d, {"ts_ranges": [range_start, range_end]}) AS t
+WHERE d.device = 1 AND (d.ts_start <= range_end AND d.ts_end >= range_start)
 )
 
 SELECT SUBSTR(device0data.date, 0, 19) as timestamp, device0data.temperature0, device1data.temperature1
