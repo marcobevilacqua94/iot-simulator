@@ -86,7 +86,7 @@ UNNEST _timeseries(d, {"ts_ranges": [range_start, range_end]}) AS t
 WHERE d.device in [0,1,2,3,4] AND (d.ts_start <= range_end AND d.ts_end >= range_start);
 ```
 
-**MULTIPLE SENSORS - USE MULTI-LINE BY COLUMNS**
+**MULTIPLE SENSORS - USE MULTI-LINE BY COLUMNS -- VERY SLOW**
 ```
 WITH device0data AS (
 WITH range_start as (STR_TO_MILLIS("2023-05-01T00:00:00Z")), range_end as (STR_TO_MILLIS("2023-06-30T00:00:00Z"))
