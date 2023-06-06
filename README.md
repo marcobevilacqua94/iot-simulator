@@ -63,7 +63,7 @@ function OnUpdate(doc, meta) {
 
 Now if you have a version of Couchbase which supports timeseries, **create this index** (target is the collection with timeseries data):
 ```
-CREATE INDEX index1 ON `sample`.`_default`.`target`(`device`, ts_start`, `ts_end`)
+CREATE INDEX index1 ON `target`(`device`, `ts_start`, `ts_end`)
 ```
 
 Now you can use the query engine to run this king of queries and produce charts in the UI (check the date ranges):
