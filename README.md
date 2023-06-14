@@ -63,7 +63,7 @@ function OnUpdate(doc, meta) {
 
 Now if you have a version of Couchbase which supports timeseries, **create this index** (target is the collection with timeseries data):
 ```
-CREATE INDEX index1 ON `sample`.`_default`.`target`(`device`, ts_start`, `ts_end`)
+CREATE INDEX index1 ON `target`(`device`, `ts_start`, `ts_end`)
 ```
 
 Now you can use the query engine to run this king of queries and produce charts in the UI (check the date ranges):
@@ -86,7 +86,7 @@ UNNEST _timeseries(d, {"ts_ranges": [range_start, range_end]}) AS t
 WHERE d.device in [0,1,2,3,4] AND (d.ts_start <= range_end AND d.ts_end >= range_start);
 ```
 
-**MULTIPLE SENSORS - USE MULTI-LINE BY COLUMNS**
+**MULTIPLE SENSORS - USE MULTI-LINE BY COLUMNS -- VERY SLOW**
 ```
 WITH device0data AS (
 WITH range_start as (STR_TO_MILLIS("2023-05-01")), range_end as (STR_TO_MILLIS("2023-06-30"))
