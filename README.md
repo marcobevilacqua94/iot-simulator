@@ -283,3 +283,24 @@ ON device0data.date = device3data.date
 JOIN device4data
 ON device0data.date = device4data.date
 ```
+**QUERY FOR USE WITH COUCHBASE GRAFANA CONNECTORS**
+```
+SELECT MILLIS_TO_STR(t._t) AS time, t._v0 as temperature, d.device as sensor
+FROM sample._default.target AS d
+UNNEST _timeseries(d) AS t 
+WHERE d.device in [0,1,2] and time_range(t._t)![image](https://github.com/marcobevilacqua94/iot-simulator/assets/116554667/9f4037d1-88f9-4011-8797-3f1f90a2784b)
+```
+**QUERY FOR USE WITH COUCHBASE GRAFANA CONNECTORS, MULTIPLE SENSORS**
+```
+WITH device0data AS (WITH range_start as (STR_TO_MILLIS("2023-05-01")), range_end as (STR_TO_MILLIS("2023-06-30"))
+SELECT MILLIS_TO_TZ(second * 1000, "UTC") AS date, second_avg as A_second_avg,AVG(second_avg) OVER (ORDER BY second ROWS 30 PRECEDING) AS B_thirty_sec_mov_avg, AVG(second_avg) OVER (ORDER BY second ROWS 60 PRECEDING) AS C_one_minute_mov_avg FROM sample._default.target AS d UNNEST _timeseries(d, {"ts_ranges": [range_start, range_end]}) AS t WHERE (d.ts_start <= range_end AND d.ts_end >= range_start) AND d.device = 0 GROUP BY IDIV(t._t, 1000) AS second LETTING second_avg = AVG(t._v0)), 
+device1data AS (WITH range_start as (STR_TO_MILLIS("2023-05-01")), range_end as (STR_TO_MILLIS("2023-06-30"))
+SELECT MILLIS_TO_TZ(second * 1000, "UTC") AS date, second_avg as A_second_avg,AVG(second_avg) OVER (ORDER BY second ROWS 30 PRECEDING) AS B_thirty_sec_mov_avg,AVG(second_avg) OVER (ORDER BY second ROWS 60 PRECEDING) AS C_one_minute_mov_avg FROM sample._default.target AS d UNNEST _timeseries(d, {"ts_ranges": [range_start, range_end]}) AS t WHERE (d.ts_start <= range_end AND d.ts_end >= range_start) AND d.device = 1 GROUP BY IDIV(t._t, 1000) AS second LETTING second_avg = AVG(t._v0))
+
+SELECT device0data.A_second_avg as second_avg_0, device1data.A_second_avg as second_avg_1, device0data.B_thirty_sec_mov_avg as thirty_sec_mov_avg_0, device1data.B_thirty_sec_mov_avg as thirty_sec_mov_avg_1, device0data.C_one_minute_mov_avg as one_minute_mov_avg_0, device1data.C_one_minute_mov_avg  as one_minute_mov_avg,
+device0data.date as time
+FROM device0data JOIN device1data ON device0data.date = device1data.date
+
+WHERE str_time_range(device0data.date)
+```
+
