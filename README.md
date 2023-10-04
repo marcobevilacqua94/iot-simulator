@@ -31,7 +31,7 @@ docker run -d --name db1 -p 8091-8096:8091-8096 -p 11210-11211:11210-11211 couch
 Create "sample" bucket, create required collections, in the _default scope, collection "source" (where sensors write), collection "metadata" (for eventing storage), collection "target" (for timeseries final data).
 The collection were the sensors write ("source") is supposed to have a short time to live (to save space).
 Then create the eventing function, listening on "source", with storage in "metadata" and with alias "tgt" pointing to "target" collection.
-This function aggregates data from the same sensor in the same 60 seconds window (-> ```Math.trunc(doc.timestamp / 60000)```)
+This function aggregates data from the same sensor in the same 60 seconds window (-> ```Math.trunc(doc.timestamp / 60000)```).
 tgt is the collection where you want to aggregate the data. The function must listen to where the sensors write.
 Use a From Now on policy. Use ts_interval and add only the temperature to the array of values (not the array couple temperature + timestamp) if you want to use regular intervals.
 To aggregate data with and eventing function and use timeseries feature of couchbase, **build an eventing function like this one**
