@@ -37,9 +37,9 @@ public class Main {
         Option option_f = Option.builder("se").argName("sensors").hasArg().desc("number of sensors to simulate").build();
         Option option_s = Option.builder("s").argName("scope").hasArg().desc("couchbase scope").build();
         Option option_c = Option.builder("c").argName("collection").hasArg().desc("couchbase collection").build();
-        Option option_mt = Option.builder("mt").argName("max_seconds").hasArg().desc("max seconds to run").build();
-        Option option_ips = Option.builder("ips").argName("inserts_per_second").hasArg().desc("inserts per second for each sensor").build();
-        Option option_ttl = Option.builder("ttl").argName("time_to_live").hasArg().desc("time to live for the inserted documents").build();
+        Option option_mt = Option.builder("mt").argName("max-seconds").hasArg().desc("max seconds to run").build();
+        Option option_ips = Option.builder("ips").argName("inserts-per-second").hasArg().desc("inserts per second for each sensor").build();
+        Option option_ttl = Option.builder("ttl").argName("time-to-live").hasArg().desc("time to live for the inserted documents").build();
         
 
 
