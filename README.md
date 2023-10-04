@@ -27,6 +27,10 @@ time-to-live: 60
 The collection were the sensors write is supposed to have a short time to live (to save space).
 To aggregate data with and eventing function and use timeseries feature of couchbase, **build an eventing function like this one**
 
+To run Couchbase Server 7.2.0 run this 
+```
+docker run -d --name db1 -p 8091-8096:8091-8096 -p 11210-11211:11210-11211 couchbase:7.2.0
+```
 This function aggregates data in the same 10 seconds window (-> ```doc.timestamp.toString().substring(0,9)```)
 tgt is the collection where you want to aggregate the data. The function must listen to where the sensors write.
 Use a From Now on policy. Use ts_interval and add only the temperature to the array of values (not the array couple temperature + timestamp) if you want to use regular intervals.
