@@ -76,6 +76,13 @@ docker run marcobevilacqua94/iot_simulator:latest java -jar iot_simulator.jar -h
 ```
 Now you can use the query engine to run this king of queries and produce charts in the UI (check the date ranges):
 
+**CAPELLA**
+With Capella you just need to create the database user and whitelist your IP. Than give the connection string as the host. 
+Capella forces you to create a scope different than _default so modify the query accordingly if you use that. 
+Also Grafana is tested and working with Capella.
+
+**MODIFY THE DATES IF NEEDED**
+
 **ONLY ONE SENSOR - USE MULTI-LINE BY COLUMNS**
 ```
 WITH range_start as (STR_TO_MILLIS("2023-05-01")), range_end as (STR_TO_MILLIS("2023-06-30"))
