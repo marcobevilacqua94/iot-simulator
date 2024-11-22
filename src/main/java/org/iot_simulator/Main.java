@@ -34,7 +34,7 @@ public class Main {
         Option option_u = Option.builder("u").argName("username").hasArg().desc("couchbase username").build();
         Option option_p = Option.builder("p").argName("password").hasArg().desc("couchbase password").build();
         Option option_b = Option.builder("b").argName("bucket").hasArg().desc("couchbase bucket").build();
-        Option option_f = Option.builder("se").argName("sensors").hasArg().desc("number of sensors to simulate").build();
+        Option option_se = Option.builder("se").argName("sensors").hasArg().desc("number of sensors to simulate").build();
         Option option_s = Option.builder("s").argName("scope").hasArg().desc("couchbase scope").build();
         Option option_c = Option.builder("c").argName("collection").hasArg().desc("couchbase collection").build();
         Option option_mt = Option.builder("mt").argName("max-seconds").hasArg().desc("max seconds to run").build();
@@ -52,7 +52,7 @@ public class Main {
         options.addOption(option_b);
         options.addOption(option_c);
         options.addOption(option_s);
-        options.addOption(option_f);
+        options.addOption(option_se);
         options.addOption(option_mt);
         options.addOption(option_ips);
         options.addOption(option_ttl);
@@ -102,6 +102,10 @@ public class Main {
             if (commandLine.hasOption("ips")) {
                 System.out.printf("inserts per second: %s%n", commandLine.getOptionValue("ips"));
                 insertsPerSecond = Integer.parseInt(commandLine.getOptionValue("ips"));
+            }
+            if (commandLine.hasOption("se")) {
+                System.out.printf("sensors: %s%n", commandLine.getOptionValue("se"));
+                sensors = Integer.parseInt(commandLine.getOptionValue("se"));
             }
             if (commandLine.hasOption("ttl")) {
                 System.out.printf("time to live: %s%n", commandLine.getOptionValue("ttl"));

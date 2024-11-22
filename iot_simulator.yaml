@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: Pod
-metadata:
-  name: iot_simulator-pod0
-spec:
-  containers:
-    - name: iot_simulator
-      image: marcobevilacqua94/iot_simulator:latest
-      command: ["java","-jar","iot_simulator.jar","-h","cb-example-persistent"]
