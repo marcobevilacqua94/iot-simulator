@@ -145,8 +145,7 @@ public class Main {
         Map<Long, Double> lastValues = new Hashtable<>();
         Map<Long, Integer> sensorNames = new Hashtable<>();
         AtomicInteger counter = new AtomicInteger(0);
-        int finalTime_to_live = time_to_live;
-        Runnable insertScheduled = () -> {
+        return () -> {
             long currentThread = Thread.currentThread().getId();
             if(!sensorNames.containsKey(currentThread)){
                 sensorNames.put(currentThread, counter.getAndIncrement());
@@ -157,10 +156,9 @@ public class Main {
             collection.upsert(
                     "SENSOR" + sensorNames.get(currentThread) + ":" + UUID.randomUUID(),
                     doc,
-                    UpsertOptions.upsertOptions().expiry(Duration.ofSeconds(finalTime_to_live))
+                    UpsertOptions.upsertOptions().expiry(Duration.ofSeconds(time_to_live))
                     ).block();
         };
-        return insertScheduled;
     }
 
 }
