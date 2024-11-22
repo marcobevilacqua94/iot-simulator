@@ -124,24 +124,7 @@ public class Main {
             ReactiveBucket bucket = cluster.bucket(bucketName).reactive();
             ReactiveScope scope = bucket.scope(scopeName);
             ReactiveCollection collection = scope.collection(collectionName);
-            Map<Long, Double> lastValues = new Hashtable<>();
-            Map<Long, Integer> sensorNames = new Hashtable<>();
-            AtomicInteger counter = new AtomicInteger(0);
-            int finalTime_to_live = time_to_live;
-            Runnable insertScheduled = () -> {
-                long currentThread = Thread.currentThread().getId();
-                if(!sensorNames.containsKey(currentThread)){
-                    sensorNames.put(currentThread, counter.getAndIncrement());
-                }
-                Double lastValue = lastValues.get(currentThread);
-                JsonObject doc = docGenerator.generateDoc(new Date().getTime(), lastValue, sensorNames.get(currentThread));
-                lastValues.put(currentThread, (Double) doc.get("temperature"));
-                collection.upsert(
-                        "SENSOR" + sensorNames.get(currentThread) + ":" + UUID.randomUUID(),
-                        doc,
-                        UpsertOptions.upsertOptions().expiry(Duration.ofSeconds(finalTime_to_live))
-                        ).block();
-            };
+            Runnable insertScheduled = getRunnable(time_to_live, docGenerator, collection);
 
 
             ScheduledExecutorService ses = Executors.newScheduledThreadPool(sensors);
@@ -156,6 +139,28 @@ public class Main {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static Runnable getRunnable(int time_to_live, DocGenerator docGenerator, ReactiveCollection collection) {
+        Map<Long, Double> lastValues = new Hashtable<>();
+        Map<Long, Integer> sensorNames = new Hashtable<>();
+        AtomicInteger counter = new AtomicInteger(0);
+        int finalTime_to_live = time_to_live;
+        Runnable insertScheduled = () -> {
+            long currentThread = Thread.currentThread().getId();
+            if(!sensorNames.containsKey(currentThread)){
+                sensorNames.put(currentThread, counter.getAndIncrement());
+            }
+            Double lastValue = lastValues.get(currentThread);
+            JsonObject doc = docGenerator.generateDoc(new Date().getTime(), lastValue, sensorNames.get(currentThread));
+            lastValues.put(currentThread, (Double) doc.get("temperature"));
+            collection.upsert(
+                    "SENSOR" + sensorNames.get(currentThread) + ":" + UUID.randomUUID(),
+                    doc,
+                    UpsertOptions.upsertOptions().expiry(Duration.ofSeconds(finalTime_to_live))
+                    ).block();
+        };
+        return insertScheduled;
     }
 
 }
